@@ -1,6 +1,6 @@
 # coding:utf-8
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, unquote
 
 from bs4 import BeautifulSoup
 
@@ -18,12 +18,12 @@ class HtmlParser(object):
     def get_new_urls(self, page_url, soup):
         new_urls = set()
         # /item/Python/407313
-        links = soup.find_all('a', href=re.compile(r"/item/\w+/\d+"))
+        links = soup.find_all('a', href=re.compile(r"/item/.+"))
         for link in links:
-            new_url = link['href']
+            new_url = unquote(link['href'])
             new_full_url = urljoin(page_url, new_url)
             new_urls.add(new_full_url)
-            return new_urls
+        return new_urls
 
     def get_new_data(self, page_url, soup):
         res_data = {}
@@ -31,11 +31,12 @@ class HtmlParser(object):
         # <dd class="lemmaWgt-lemmaTitle-title"><h1>Python</h1>
 
         title_node = soup.find('dd', class_="lemmaWgt-lemmaTitle-title").find("h1")
-        res_data['title'] = title_node.get_text()
+        res_data['title'] = "" if title_node is None else title_node.get_text()
 
         #<div class="lemma-summary" label-module="lemmaSummary">
 
         summary_node = soup.find('div', class_="lemma-summary")
-        res_data['summary'] = summary_node.get_text()
+        para_node = None if summary_node is None else summary_node.find('div', class_="para")
+        res_data['para'] = "" if para_node is None else para_node.get_text()
 
         return res_data
